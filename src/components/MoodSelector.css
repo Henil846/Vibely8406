@@ -1,0 +1,98 @@
+.mood-selector-title {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.mood-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+.mood-grid-compact {
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--space-sm);
+}
+
+.mood-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-md);
+  background: var(--bg-input);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.mood-item:hover {
+  transform: translateY(-4px);
+  border-color: var(--mood-color);
+  box-shadow: 0 8px 25px var(--mood-glow);
+}
+
+.mood-item.active {
+  border-color: var(--mood-color);
+  background: linear-gradient(135deg, var(--mood-glow), transparent);
+  box-shadow: 0 4px 20px var(--mood-glow);
+}
+
+.mood-emoji {
+  font-size: 1.8rem;
+  z-index: 1;
+}
+
+.mood-grid-compact .mood-emoji {
+  font-size: 1.4rem;
+}
+
+.mood-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  z-index: 1;
+}
+
+.mood-grid-compact .mood-label {
+  font-size: 0.65rem;
+}
+
+.mood-glow-effect {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, var(--mood-glow) 0%, transparent 70%);
+  pointer-events: none;
+  animation: moodPulse 2s ease-in-out infinite;
+}
+
+@keyframes moodPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 0.6; transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+  .mood-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-sm);
+  }
+  .mood-grid-compact {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .mood-item {
+    padding: var(--space-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .mood-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

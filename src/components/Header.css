@@ -1,0 +1,200 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-xl);
+  z-index: var(--z-sticky);
+  transition: all var(--transition-base);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-primary);
+  font-weight: 800;
+  font-size: 1.4rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  cursor: pointer;
+}
+
+.header-brand-icon {
+  font-size: 1.6rem;
+  -webkit-text-fill-color: initial;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.header-notification-btn {
+  position: relative;
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: all var(--transition-base);
+  border: none;
+  cursor: pointer;
+}
+
+.header-notification-btn:hover {
+  background: var(--primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.notification-badge-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--accent-pink);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-card);
+}
+
+.header-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-hover);
+  padding: 6px 14px 6px 6px;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  border: none;
+  color: var(--text-primary);
+}
+
+.header-profile-btn img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.header-profile-btn:hover {
+  background: rgba(108, 92, 231, 0.15);
+}
+
+.header-profile-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.header-dropdown {
+  position: absolute;
+  top: calc(var(--header-height) + 8px);
+  right: var(--space-xl);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
+  min-width: 220px;
+  animation: scaleIn 0.2s ease;
+  overflow: hidden;
+  z-index: var(--z-dropdown);
+}
+
+.header-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 12px var(--space-lg);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.header-dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.header-dropdown-item.danger {
+  color: var(--accent-pink);
+}
+
+.header-dropdown-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 4px 0;
+}
+
+.theme-toggle-btn {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: all var(--transition-base);
+  border: none;
+  cursor: pointer;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--primary);
+  color: white;
+  transform: rotate(30deg) scale(1.05);
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  border: none;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 var(--space-md);
+  }
+  .header-profile-name {
+    display: none;
+  }
+  .mobile-menu-btn {
+    display: flex;
+  }
+}
