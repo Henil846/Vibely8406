@@ -1,7 +1,7 @@
 // In development, Vite proxy handles /api -> localhost:3000
 // In production (GitHub Pages), we need the full backend URL
 const API_BASE = import.meta.env.PROD
-  ? "https://vibely-backend.onrender.com/api"
+  ? "https://vibely-backend-delta.vercel.app/api"
   : "/api";
 
 async function apiRequest(endpoint, options = {}) {
