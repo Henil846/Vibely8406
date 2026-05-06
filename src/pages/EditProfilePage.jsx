@@ -1,9 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase/config';
-import { GENDERS, PREFERRED_GENDERS, INTERESTS, MOODS, COMMUNICATION_MODES, PRIVACY_OPTIONS, DEFAULT_AVATAR } from '../utils/constants';
+import { GENDERS, PREFERRED_GENDERS, INTERESTS, COMMUNICATION_MODES, PRIVACY_OPTIONS, DEFAULT_AVATAR } from '../utils/constants';
 import MoodSelector from '../components/MoodSelector';
 import { HiOutlineCamera, HiOutlineCheck } from 'react-icons/hi';
 import './Profile.css';
@@ -52,12 +50,7 @@ const EditProfilePage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      let photoURL = userProfile?.photoURL || '';
-      if (photoFile) {
-        const storageRef = ref(storage, `profilePhotos/${userProfile.uid}_${Date.now()}`);
-        await uploadBytes(storageRef, photoFile);
-        photoURL = await getDownloadURL(storageRef);
-      }
+      const photoURL = photoPreview || userProfile?.photoURL || '';
       await updateUserProfile({ ...formData, photoURL });
       setSuccess(true);
       setTimeout(() => navigate('/profile'), 1500);
@@ -74,13 +67,11 @@ const EditProfilePage = () => {
         <h1 style={{ fontSize: '1.6rem' }}>Edit Profile</h1>
         <button className="btn btn-ghost" onClick={() => navigate('/profile')}>Cancel</button>
       </div>
-
       {success && (
         <div style={{ background: 'rgba(0,184,148,0.1)', border: '1px solid rgba(0,184,148,0.2)', borderRadius: 'var(--radius-md)', padding: '14px 20px', marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-green)' }}>
           <HiOutlineCheck /> Profile updated successfully!
         </div>
       )}
-
       <form onSubmit={handleSubmit} className="edit-profile-form">
         <div className="profile-section">
           <h3>Profile Photo</h3>
@@ -92,7 +83,6 @@ const EditProfilePage = () => {
             <button type="button" className="btn btn-sm btn-secondary" onClick={() => fileInputRef.current?.click()}><HiOutlineCamera /> Change Photo</button>
           </div>
         </div>
-
         <div className="profile-section">
           <h3>Basic Info</h3>
           <div className="edit-form-row">
@@ -122,24 +112,19 @@ const EditProfilePage = () => {
               <input type="text" className="form-input" value={formData.region} onChange={e => updateField('region', e.target.value)} /></div>
           </div>
         </div>
-
         <div className="profile-section">
           <h3>Communication Mode</h3>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             {COMMUNICATION_MODES.map(mode => (
               <button key={mode.id} type="button" className={`discover-comm-mode-btn ${formData.communicationMode === mode.id ? 'active' : ''}`}
-                onClick={() => updateField('communicationMode', mode.id)}>
-                {mode.icon} {mode.label}
-              </button>
+                onClick={() => updateField('communicationMode', mode.id)}>{mode.icon} {mode.label}</button>
             ))}
           </div>
         </div>
-
         <div className="profile-section">
           <h3>Current Mood</h3>
           <MoodSelector selectedMood={formData.mood} onSelect={(m) => updateField('mood', m)} compact />
         </div>
-
         <div className="profile-section">
           <h3>Interests</h3>
           <div className="interests-grid">
@@ -149,7 +134,6 @@ const EditProfilePage = () => {
             ))}
           </div>
         </div>
-
         <div className="profile-section">
           <h3>Privacy Settings</h3>
           <div className="form-group"><label className="form-label">Location Visibility</label>
@@ -163,7 +147,6 @@ const EditProfilePage = () => {
               {PRIVACY_OPTIONS.profile.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
             </select></div>
         </div>
-
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" onClick={() => navigate('/profile')}>Cancel</button>
           <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>

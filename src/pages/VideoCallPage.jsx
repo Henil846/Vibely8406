@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { db } from '../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
 import { DEFAULT_AVATAR } from '../utils/constants';
-import { HiOutlineVideoCamera, HiOutlineMicrophone, HiOutlineDesktopComputer } from 'react-icons/hi';
+import { HiOutlineVideoCamera, HiOutlineMicrophone } from 'react-icons/hi';
 import { FiPhoneOff, FiMicOff, FiVideoOff } from 'react-icons/fi';
 import './Chat.css';
 
@@ -17,11 +15,7 @@ const VideoCallPage = () => {
   const [isVideoOff, setIsVideoOff] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
-      const snap = await getDoc(doc(db, 'users', recipientId));
-      if (snap.exists()) setRecipient(snap.data());
-    };
-    fetch();
+    setRecipient({ displayName: 'Demo User', photoURL: '', isOnline: true });
     const timer = setTimeout(() => setCallStatus('ringing'), 1500);
     return () => clearTimeout(timer);
   }, [recipientId]);
@@ -42,9 +36,7 @@ const VideoCallPage = () => {
             <img src={recipient?.photoURL || DEFAULT_AVATAR} alt="" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }} />
             <p style={{ color: 'rgba(255,255,255,0.7)' }}>{recipient?.displayName}'s camera</p>
           </div>
-          <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '120px', height: '90px', background: 'var(--gradient-primary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>
-            Your camera
-          </div>
+          <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '120px', height: '90px', background: 'var(--gradient-primary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>Your camera</div>
         </div>
       ) : (
         <>
@@ -52,30 +44,17 @@ const VideoCallPage = () => {
           <h2 className="call-name">{recipient?.displayName || 'Loading...'}</h2>
         </>
       )}
-
       <p className="call-status">
         {callStatus === 'connecting' && '🔄 Connecting video...'}
         {callStatus === 'ringing' && '📹 Ringing...'}
         {callStatus === 'connected' && `🎥 ${formatDuration(duration)}`}
       </p>
-
       <div className="call-actions">
-        <button className="call-action-btn mute" onClick={() => setIsMuted(!isMuted)}>
-          {isMuted ? <FiMicOff /> : <HiOutlineMicrophone />}
-        </button>
-        <button className="call-action-btn mute" onClick={() => setIsVideoOff(!isVideoOff)}>
-          {isVideoOff ? <FiVideoOff /> : <HiOutlineVideoCamera />}
-        </button>
-        {callStatus === 'ringing' && (
-          <button className="call-action-btn accept-call" onClick={() => setCallStatus('connected')}>
-            <HiOutlineVideoCamera />
-          </button>
-        )}
-        <button className="call-action-btn end-call" onClick={() => navigate('/chats')}>
-          <FiPhoneOff />
-        </button>
+        <button className="call-action-btn mute" onClick={() => setIsMuted(!isMuted)}>{isMuted ? <FiMicOff /> : <HiOutlineMicrophone />}</button>
+        <button className="call-action-btn mute" onClick={() => setIsVideoOff(!isVideoOff)}>{isVideoOff ? <FiVideoOff /> : <HiOutlineVideoCamera />}</button>
+        {callStatus === 'ringing' && (<button className="call-action-btn accept-call" onClick={() => setCallStatus('connected')}><HiOutlineVideoCamera /></button>)}
+        <button className="call-action-btn end-call" onClick={() => navigate('/chats')}><FiPhoneOff /></button>
       </div>
-
       <p style={{ marginTop: '48px', opacity: 0.5, fontSize: '0.85rem' }}>Video calling powered by MoodLink</p>
     </div>
   );

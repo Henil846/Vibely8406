@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../firebase/config';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { DEFAULT_AVATAR } from '../utils/constants';
 import { formatMessageTime, generateChatId } from '../utils/helpers';
-import { HiOutlineArrowLeft, HiOutlinePhone, HiOutlineVideoCamera, HiOutlineDotsVertical } from 'react-icons/hi';
+import { HiOutlineArrowLeft, HiOutlinePhone, HiOutlineVideoCamera } from 'react-icons/hi';
 import { FiSend } from 'react-icons/fi';
 import './Chat.css';
 
@@ -19,40 +17,31 @@ const ChatPage = () => {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
 
-  const chatId = generateChatId(currentUser?.uid, recipientId);
-
   useEffect(() => {
-    const fetchRecipient = async () => {
-      const docSnap = await getDoc(doc(db, 'users', recipientId));
-      if (docSnap.exists()) setRecipient({ uid: recipientId, ...docSnap.data() });
-    };
-    if (recipientId) fetchRecipient();
+    // Mock recipient data
+    setRecipient({
+      uid: recipientId,
+      displayName: 'Demo User',
+      photoURL: '',
+      isOnline: true,
+    });
+    setLoading(false);
   }, [recipientId]);
-
-  useEffect(() => {
-    if (!chatId) return;
-    const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('createdAt', 'asc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMessages(msgs);
-      setLoading(false);
-    }, () => setLoading(false));
-    return unsubscribe;
-  }, [chatId]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-  const handleSend = async (e) => {
+  const handleSend = (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-    const msg = newMessage;
+    const msg = {
+      id: 'msg_' + Date.now(),
+      text: newMessage,
+      senderId: currentUser.uid,
+      senderName: userProfile?.displayName,
+      createdAt: new Date(),
+    };
+    setMessages(prev => [...prev, msg]);
     setNewMessage('');
-    try {
-      await addDoc(collection(db, 'chats', chatId, 'messages'), {
-        text: msg, senderId: currentUser.uid, senderName: userProfile?.displayName,
-        createdAt: serverTimestamp(),
-      });
-    } catch (err) { console.error(err); }
   };
 
   return (
@@ -70,7 +59,6 @@ const ChatPage = () => {
         <button className="btn btn-icon btn-ghost" onClick={() => navigate(`/voice-call/${recipientId}`)}><HiOutlinePhone /></button>
         <button className="btn btn-icon btn-ghost" onClick={() => navigate(`/video-call/${recipientId}`)}><HiOutlineVideoCamera /></button>
       </div>
-
       <div className="chat-messages">
         {loading ? (
           <div className="flex-center" style={{ flex: 1 }}><div className="spinner" /></div>
@@ -92,7 +80,6 @@ const ChatPage = () => {
         )}
         <div ref={messagesEndRef} />
       </div>
-
       <form className="chat-input-area" onSubmit={handleSend}>
         <input className="chat-input" placeholder="Type a message..." value={newMessage} onChange={e => setNewMessage(e.target.value)} />
         <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}><FiSend /></button>

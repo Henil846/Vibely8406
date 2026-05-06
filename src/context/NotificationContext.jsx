@@ -1,6 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { db } from '../firebase/config';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { createContext, useContext, useState } from 'react';
 import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
@@ -14,51 +12,31 @@ export const useNotifications = () => {
 export const NotificationProvider = ({ children }) => {
   const { currentUser } = useAuth();
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    if (!currentUser) {
-      setNotifications([]);
-      setUnreadCount(0);
-      return;
-    }
-
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', currentUser.uid),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.read).length);
-    }, (error) => {
-      console.log('Notification listener error:', error);
-    });
-
-    return unsubscribe;
-  }, [currentUser]);
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAsRead = async (notificationId) => {
-    await updateDoc(doc(db, 'notifications', notificationId), { read: true });
+    setNotifications(prev =>
+      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    );
   };
 
   const markAllRead = async () => {
-    const unread = notifications.filter(n => !n.read);
-    await Promise.all(unread.map(n => updateDoc(doc(db, 'notifications', n.id), { read: true })));
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   const addNotification = async (userId, type, title, message, data = {}) => {
-    await addDoc(collection(db, 'notifications'), {
+    const newNotif = {
+      id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       userId,
       type,
       title,
       message,
       data,
       read: false,
-      createdAt: serverTimestamp(),
-    });
+      createdAt: new Date(),
+    };
+    setNotifications(prev => [newNotif, ...prev]);
   };
 
   return (

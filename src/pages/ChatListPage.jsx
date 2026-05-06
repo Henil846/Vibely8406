@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../firebase/config';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { DEFAULT_AVATAR } from '../utils/constants';
 import { formatTimestamp } from '../utils/helpers';
-import { HiOutlineChatAlt2, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineSearch } from 'react-icons/hi';
 import './Chat.css';
 
 const ChatListPage = () => {
@@ -16,7 +14,6 @@ const ChatListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // For demo, show empty state. In production, query the chats collection.
     setLoading(false);
   }, [currentUser]);
 
@@ -27,12 +24,10 @@ const ChatListPage = () => {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-xl)' }}>
         <h1 style={{ fontSize: '1.6rem' }}>Messages 💬</h1>
       </div>
-
       <div style={{ marginBottom: 'var(--space-lg)', position: 'relative' }}>
         <HiOutlineSearch style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
         <input className="form-input" style={{ paddingLeft: '44px' }} placeholder="Search conversations..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
       </div>
-
       {loading ? (
         <div className="flex-center" style={{ padding: '60px 0' }}><div className="spinner" /></div>
       ) : filteredChats.length === 0 ? (
@@ -40,9 +35,7 @@ const ChatListPage = () => {
           <div className="empty-state-icon">💬</div>
           <h3 className="empty-state-title">No conversations yet</h3>
           <p className="empty-state-text">Start connecting with people on the Discover page!</p>
-          <button className="btn btn-primary" onClick={() => navigate('/discover')} style={{ marginTop: '16px' }}>
-            Find People
-          </button>
+          <button className="btn btn-primary" onClick={() => navigate('/discover')} style={{ marginTop: '16px' }}>Find People</button>
         </div>
       ) : (
         <div>

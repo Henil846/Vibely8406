@@ -1,14 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { auth, db } from '../firebase/config';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  onAuthStateChanged,
-  updateProfile
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { authAPI, userAPI } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -23,131 +14,142 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const signup = async (email, password, profileData) => {
-    console.log('Starting signup for:', email);
-    
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    console.log('Firebase Auth user created:', result.user.uid);
+  // Restore session on mount by checking if we have a valid cookie
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const data = await userAPI.getMe();
+        if (data.user) {
+          setCurrentUser({ uid: data.user._id, email: data.user.email });
+          setUserProfile(mapBackendUser(data.user));
+        }
+      } catch (err) {
+        // Not authenticated, that's fine
+        setCurrentUser(null);
+        setUserProfile(null);
+      }
+      setLoading(false);
+    };
+    checkAuth();
+  }, []);
 
-    try {
-      await updateProfile(result.user, { displayName: profileData.displayName });
-    } catch (e) {
-      console.warn('updateProfile failed (non-critical):', e);
-    }
-    
-    const userDoc = {
-      uid: result.user.uid,
+  // Map backend user fields to what frontend expects
+  const mapBackendUser = (user) => ({
+    uid: user._id,
+    email: user.email,
+    displayName: user.displayName || user.fullname || '',
+    username: user.username || '',
+    age: user.age || '',
+    gender: user.gender || '',
+    preferredGender: user.talk_with || user.preferredGender || 'everyone',
+    bio: user.bio || '',
+    interests: user.interests || [],
+    city: user.city || '',
+    region: user.state || '',
+    photoURL: user.profilePhoto || '',
+    mood: user.mood || 'happy',
+    communicationMode: user.communicationMode || 'text',
+    isOnline: user.isOnline || false,
+    isPremium: user.isPremium || false,
+    premiumPlan: user.premiumPlan || null,
+    premiumExpiry: user.premiumExpiry || null,
+    privacy: user.privacy || { location: 'city', profile: 'everyone' },
+    blockedUsers: user.blockedUsers || [],
+    dailyMatchCount: user.dailyMatchCount || 0,
+    dailyChatRequests: user.dailyChatRequests || 0,
+    lastMatchReset: user.lastMatchReset || new Date().toISOString(),
+    createdAt: user.createdAt || new Date().toISOString(),
+    updatedAt: user.updatedAt || new Date().toISOString(),
+  });
+
+  const signup = async (email, password, profileData) => {
+    const payload = {
       email,
-      displayName: profileData.displayName,
-      username: profileData.username,
-      age: profileData.age,
-      gender: profileData.gender,
-      preferredGender: profileData.preferredGender,
+      password,
+      fullname: profileData.displayName || '',
+      displayName: profileData.displayName || '',
+      username: profileData.username || '',
+      phone: profileData.phone || '',
+      age: profileData.age || '',
+      gender: profileData.gender || '',
+      preferredGender: profileData.preferredGender || 'everyone',
       bio: profileData.bio || '',
       interests: profileData.interests || [],
       city: profileData.city || '',
       region: profileData.region || '',
-      photoURL: profileData.photoURL || '',
-      mood: 'happy',
-      communicationMode: 'text',
-      isOnline: true,
-      isPremium: false,
-      premiumPlan: null,
-      premiumExpiry: null,
-      privacy: {
-        location: 'city',
-        profile: 'everyone',
-      },
-      blockedUsers: [],
-      dailyMatchCount: 0,
-      dailyChatRequests: 0,
-      lastMatchReset: serverTimestamp(),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      profilePhoto: profileData.photoURL || '',
     };
 
-    try {
-      // Add timeout so signup doesn't hang if Firestore DB doesn't exist
-      const firestoreWrite = setDoc(doc(db, 'users', result.user.uid), userDoc);
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Firestore write timed out — is the Firestore Database created in Firebase Console?')), 5000)
-      );
-      await Promise.race([firestoreWrite, timeout]);
-      console.log('Firestore user doc created');
-    } catch (e) {
-      console.warn('Firestore setDoc failed or timed out:', e.message);
-      // Still allow signup even if Firestore write fails — auth user was created
-    }
-    
-    setUserProfile(userDoc);
-    return result;
+    const data = await authAPI.register(payload);
+    const mappedUser = mapBackendUser(data.user);
+    setCurrentUser({ uid: data.user._id, email: data.user.email });
+    setUserProfile(mappedUser);
+    return { user: { uid: data.user._id, email: data.user.email } };
   };
 
   const login = async (email, password) => {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    try {
-      const writePromise = updateDoc(doc(db, 'users', result.user.uid), { isOnline: true, updatedAt: serverTimestamp() });
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000));
-      await Promise.race([writePromise, timeout]);
-    } catch (e) {
-      console.warn('Firestore update on login failed (non-critical):', e.message);
-    }
-    return result;
+    const data = await authAPI.login(email, password);
+    const mappedUser = mapBackendUser(data.user);
+    setCurrentUser({ uid: data.user._id, email: data.user.email });
+    setUserProfile(mappedUser);
+    return { user: { uid: data.user._id, email: data.user.email } };
   };
 
   const logout = async () => {
-    if (currentUser) {
-      try {
-        await updateDoc(doc(db, 'users', currentUser.uid), { isOnline: false, updatedAt: serverTimestamp() });
-      } catch (e) { /* ignore */ }
+    try {
+      await authAPI.logout();
+    } catch (err) {
+      // Logout even if API fails
     }
+    setCurrentUser(null);
     setUserProfile(null);
-    return signOut(auth);
   };
 
-  const resetPassword = (email) => sendPasswordResetEmail(auth, email);
+  const resetPassword = async (email) => {
+    // TODO: implement password reset on backend
+    return true;
+  };
 
   const fetchUserProfile = async (uid) => {
     try {
-      const readPromise = getDoc(doc(db, 'users', uid));
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000));
-      const docSnap = await Promise.race([readPromise, timeout]);
-      if (docSnap.exists()) {
-        const profile = { ...docSnap.data(), uid };
-        setUserProfile(profile);
-        return profile;
+      const data = await userAPI.getMe();
+      if (data.user) {
+        const mapped = mapBackendUser(data.user);
+        setUserProfile(mapped);
+        return mapped;
       }
-    } catch (e) {
-      console.warn('fetchUserProfile failed or timed out:', e.message);
+    } catch (err) {
+      console.error('fetchUserProfile error:', err);
     }
     return null;
   };
 
-  const updateUserProfile = async (data) => {
+  const updateUserProfile = async (updates) => {
     if (!currentUser) return;
-    const updateData = { ...data, updatedAt: serverTimestamp() };
-    try {
-      const writePromise = updateDoc(doc(db, 'users', currentUser.uid), updateData);
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000));
-      await Promise.race([writePromise, timeout]);
-    } catch (e) {
-      console.warn('updateUserProfile failed:', e.message);
-    }
-    setUserProfile(prev => ({ ...prev, ...updateData }));
-  };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        await fetchUserProfile(user.uid);
-      } else {
-        setUserProfile(null);
+    // Map frontend fields to backend fields
+    const payload = { ...updates };
+    if (payload.preferredGender !== undefined) {
+      payload.talk_with = payload.preferredGender;
+    }
+    if (payload.region !== undefined) {
+      payload.state = payload.region;
+    }
+    if (payload.photoURL !== undefined) {
+      payload.profilePhoto = payload.photoURL;
+    }
+
+    try {
+      const data = await userAPI.updateProfile(payload);
+      if (data.user) {
+        const mapped = mapBackendUser(data.user);
+        setUserProfile(mapped);
       }
-      setLoading(false);
-    });
-    return unsubscribe;
-  }, []);
+    } catch (err) {
+      console.error('updateUserProfile error:', err);
+      throw err;
+    }
+  };
 
   const value = {
     currentUser,

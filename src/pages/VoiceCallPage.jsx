@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { db } from '../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
 import { DEFAULT_AVATAR } from '../utils/constants';
 import { HiOutlinePhone, HiOutlineMicrophone, HiOutlineVolumeUp } from 'react-icons/hi';
 import { FiPhoneOff, FiMicOff } from 'react-icons/fi';
@@ -16,11 +14,7 @@ const VoiceCallPage = () => {
   const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
-      const snap = await getDoc(doc(db, 'users', recipientId));
-      if (snap.exists()) setRecipient(snap.data());
-    };
-    fetch();
+    setRecipient({ displayName: 'Demo User', photoURL: '', isOnline: true });
     const timer = setTimeout(() => setCallStatus('ringing'), 1500);
     return () => clearTimeout(timer);
   }, [recipientId]);
@@ -42,27 +36,17 @@ const VoiceCallPage = () => {
         {callStatus === 'ringing' && '📞 Ringing...'}
         {callStatus === 'connected' && `🔊 ${formatDuration(duration)}`}
       </p>
-
       <div className="call-actions">
         <button className="call-action-btn mute" onClick={() => setIsMuted(!isMuted)}>
           {isMuted ? <FiMicOff /> : <HiOutlineMicrophone />}
         </button>
         {callStatus === 'ringing' && (
-          <button className="call-action-btn accept-call" onClick={() => setCallStatus('connected')}>
-            <HiOutlinePhone />
-          </button>
+          <button className="call-action-btn accept-call" onClick={() => setCallStatus('connected')}><HiOutlinePhone /></button>
         )}
-        <button className="call-action-btn end-call" onClick={() => navigate('/chats')}>
-          <FiPhoneOff />
-        </button>
-        <button className="call-action-btn mute">
-          <HiOutlineVolumeUp />
-        </button>
+        <button className="call-action-btn end-call" onClick={() => navigate('/chats')}><FiPhoneOff /></button>
+        <button className="call-action-btn mute"><HiOutlineVolumeUp /></button>
       </div>
-
-      <p style={{ marginTop: '48px', opacity: 0.5, fontSize: '0.85rem' }}>
-        Voice calling powered by MoodLink
-      </p>
+      <p style={{ marginTop: '48px', opacity: 0.5, fontSize: '0.85rem' }}>Voice calling powered by MoodLink</p>
     </div>
   );
 };

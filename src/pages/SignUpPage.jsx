@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase/config';
+import { authAPI } from '../utils/api';
 import { GENDERS, PREFERRED_GENDERS, INTERESTS } from '../utils/constants';
 import { validateEmail, validatePassword, validateUsername } from '../utils/helpers';
 import { HiOutlineCamera, HiOutlineCheck } from 'react-icons/hi';
@@ -18,8 +17,17 @@ const SignUpPage = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
 
+  // OTP state
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpMessage, setOtpMessage] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+  const otpRefs = useRef([]);
+
   const [formData, setFormData] = useState({
-    displayName: '', username: '', email: '', password: '', confirmPassword: '',
+    displayName: '', username: '', email: '', phone: '', password: '', confirmPassword: '',
     age: '', gender: '', preferredGender: '', bio: '', city: '', region: '',
     interests: [],
   });
@@ -31,7 +39,7 @@ const SignUpPage = () => {
       ...prev,
       interests: prev.interests.includes(interest)
         ? prev.interests.filter(i => i !== interest)
-        : prev.interests.length < (formData.isPremium ? 15 : 5)
+        : prev.interests.length < 5
           ? [...prev.interests, interest]
           : prev.interests
     }));
@@ -45,10 +53,104 @@ const SignUpPage = () => {
     }
   };
 
+  // Start resend timer
+  const startResendTimer = () => {
+    setResendTimer(60);
+    const interval = setInterval(() => {
+      setResendTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Send OTP
+  const handleSendOTP = async () => {
+    setError('');
+    setOtpMessage('');
+
+    if (!validateEmail(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      await authAPI.sendOTP(formData.email);
+      setOtpSent(true);
+      setOtpMessage('OTP sent to your email! Check your inbox.');
+      startResendTimer();
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Try logging in instead.');
+      } else {
+        setError(err.message || 'Failed to send OTP. Please try again.');
+      }
+    }
+    setOtpLoading(false);
+  };
+
+  // Handle OTP input
+  const handleOtpChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return; // Only allow digits
+
+    const newOtp = [...otpCode];
+    newOtp[index] = value.slice(-1); // Only take the last digit
+    setOtpCode(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const newOtp = [...otpCode];
+    for (let i = 0; i < pastedData.length; i++) {
+      newOtp[i] = pastedData[i];
+    }
+    setOtpCode(newOtp);
+    if (pastedData.length > 0) {
+      const focusIndex = Math.min(pastedData.length, 5);
+      otpRefs.current[focusIndex]?.focus();
+    }
+  };
+
+  // Verify OTP
+  const handleVerifyOTP = async () => {
+    const code = otpCode.join('');
+    if (code.length !== 6) {
+      setError('Please enter the complete 6-digit code');
+      return;
+    }
+
+    setError('');
+    setOtpLoading(true);
+    try {
+      await authAPI.verifyOTP(formData.email, code);
+      setOtpVerified(true);
+      setOtpMessage('Email verified successfully! ✅');
+    } catch (err) {
+      setError(err.message || 'Invalid OTP. Please try again.');
+    }
+    setOtpLoading(false);
+  };
+
   const validateStep = () => {
     setError('');
     if (step === 1) {
-      if (!formData.displayName || !formData.username || !formData.email || !formData.password) {
+      if (!formData.displayName || !formData.username || !formData.email || !formData.phone || !formData.password) {
         setError('Please fill in all required fields');
         return false;
       }
@@ -60,12 +162,20 @@ const SignUpPage = () => {
         setError('Please enter a valid email address');
         return false;
       }
+      if (!/^[+]?[\d\s()-]{7,15}$/.test(formData.phone)) {
+        setError('Please enter a valid phone number (7-15 digits)');
+        return false;
+      }
       if (!validatePassword(formData.password)) {
         setError('Password must be at least 6 characters');
         return false;
       }
       if (formData.password !== formData.confirmPassword) {
         setError('Passwords do not match');
+        return false;
+      }
+      if (!otpVerified) {
+        setError('Please verify your email address first');
         return false;
       }
     }
@@ -91,12 +201,7 @@ const SignUpPage = () => {
     setLoading(true);
     setError('');
     try {
-      let photoURL = '';
-      if (photoFile) {
-        const storageRef = ref(storage, `profilePhotos/${formData.username}_${Date.now()}`);
-        await uploadBytes(storageRef, photoFile);
-        photoURL = await getDownloadURL(storageRef);
-      }
+      const photoURL = photoPreview || '';
       await signup(formData.email, formData.password, { ...formData, photoURL });
       navigate('/dashboard');
     } catch (err) {
@@ -104,16 +209,14 @@ const SignUpPage = () => {
       const code = err.code || err.message || '';
       if (code === 'auth/email-already-in-use') {
         setError('This email is already registered. Try logging in instead.');
-      } else if (code.includes('CONFIGURATION_NOT_FOUND') || code === 'auth/configuration-not-found') {
-        setError('Firebase Auth not enabled. Go to Firebase Console → Authentication → Sign-in method → Enable Email/Password.');
-      } else if (code === 'auth/network-request-failed') {
-        setError('Network error. Please check your internet connection.');
+      } else if (code === 'auth/phone-already-in-use') {
+        setError('This phone number is already registered.');
+      } else if (code === 'auth/username-taken') {
+        setError('This username is already taken.');
       } else if (code === 'auth/weak-password') {
         setError('Password is too weak. Use at least 6 characters.');
-      } else if (code === 'auth/invalid-email') {
-        setError('Invalid email address format.');
       } else {
-        setError(`Failed to create account: ${code || 'Unknown error'}. Check browser console for details.`);
+        setError(`Failed to create account: ${err.message || 'Unknown error'}.`);
       }
     }
     setLoading(false);
@@ -160,9 +263,123 @@ const SignUpPage = () => {
                   <input type="text" className="form-input" placeholder="your_username" value={formData.username} onChange={e => updateField('username', e.target.value.toLowerCase())} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Email *</label>
-                  <input type="email" className="form-input" placeholder="you@example.com" value={formData.email} onChange={e => updateField('email', e.target.value)} />
+                  <label className="form-label">Phone Number *</label>
+                  <input type="tel" className="form-input" placeholder="+91 9876543210" value={formData.phone} onChange={e => updateField('phone', e.target.value)} />
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Email *</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <input
+                      type="email"
+                      className="form-input"
+                      placeholder="you@example.com"
+                      value={formData.email}
+                      onChange={e => {
+                        updateField('email', e.target.value);
+                        // Reset OTP state when email changes
+                        if (otpSent) {
+                          setOtpSent(false);
+                          setOtpVerified(false);
+                          setOtpCode(['', '', '', '', '', '']);
+                          setOtpMessage('');
+                        }
+                      }}
+                      disabled={otpVerified}
+                      style={{ flex: 1 }}
+                    />
+                    {!otpVerified && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={handleSendOTP}
+                        disabled={otpLoading || !formData.email || resendTimer > 0}
+                        style={{ whiteSpace: 'nowrap', height: '46px', padding: '0 16px', fontSize: '0.85rem' }}
+                      >
+                        {otpLoading ? '...' : otpSent ? (resendTimer > 0 ? `${resendTimer}s` : 'Resend') : 'Send OTP'}
+                      </button>
+                    )}
+                    {otpVerified && (
+                      <div style={{
+                        height: '46px', display: 'flex', alignItems: 'center',
+                        color: 'var(--accent-green)', fontSize: '1.2rem', padding: '0 8px'
+                      }}>
+                        ✅
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* OTP Input */}
+                {otpSent && !otpVerified && (
+                  <div className="form-group">
+                    <label className="form-label">Enter 6-Digit OTP</label>
+                    {otpMessage && (
+                      <div style={{
+                        fontSize: '0.8rem',
+                        color: 'var(--accent-green)',
+                        marginBottom: '10px',
+                        background: 'rgba(0,184,148,0.1)',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                      }}>
+                        {otpMessage}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '12px' }}>
+                      {otpCode.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={el => otpRefs.current[index] = el}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={e => handleOtpChange(index, e.target.value)}
+                          onKeyDown={e => handleOtpKeyDown(index, e)}
+                          onPaste={index === 0 ? handleOtpPaste : undefined}
+                          className="form-input"
+                          style={{
+                            width: '48px',
+                            height: '52px',
+                            textAlign: 'center',
+                            fontSize: '1.3rem',
+                            fontWeight: 'bold',
+                            padding: '0',
+                            letterSpacing: '0',
+                            caretColor: 'var(--primary)',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={handleVerifyOTP}
+                      disabled={otpLoading || otpCode.join('').length !== 6}
+                      style={{ width: '100%' }}
+                    >
+                      {otpLoading ? 'Verifying...' : 'Verify Email'}
+                    </button>
+                  </div>
+                )}
+
+                {otpVerified && (
+                  <div style={{
+                    background: 'rgba(0,184,148,0.1)',
+                    border: '1px solid rgba(0,184,148,0.3)',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    marginBottom: '16px',
+                    fontSize: '0.85rem',
+                    color: 'var(--accent-green)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <HiOutlineCheck /> Email verified successfully!
+                  </div>
+                )}
+
                 <div className="auth-form-row">
                   <div className="form-group">
                     <label className="form-label">Password *</label>

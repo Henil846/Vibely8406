@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { PREMIUM_PLANS } from '../utils/constants';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
 import { HiOutlineX, HiOutlineCheck, HiOutlineStar } from 'react-icons/hi';
 
 const UpgradeModal = ({ onClose }) => {
@@ -18,7 +16,7 @@ const UpgradeModal = ({ onClose }) => {
       await updateUserProfile({
         isPremium: true,
         premiumPlan: plan.id,
-        premiumExpiry: new Date(Date.now() + (plan.id === 'monthly' ? 30 : plan.id === 'quarterly' ? 90 : 365) * 86400000),
+        premiumExpiry: new Date(Date.now() + (plan.id === 'monthly' ? 30 : plan.id === 'quarterly' ? 90 : 365) * 86400000).toISOString(),
       });
       setSuccess(true);
     } catch (err) {
@@ -64,11 +62,7 @@ const UpgradeModal = ({ onClose }) => {
                 transition: 'all 0.3s ease', position: 'relative', textAlign: 'center'
               }}>
                 {plan.popular && (
-                  <div style={{
-                    position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)',
-                    background: 'var(--accent-pink)', color: 'white', fontSize: '0.65rem', fontWeight: '700',
-                    padding: '2px 10px', borderRadius: '100px'
-                  }}>POPULAR</div>
+                  <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', background: 'var(--accent-pink)', color: 'white', fontSize: '0.65rem', fontWeight: '700', padding: '2px 10px', borderRadius: '100px' }}>POPULAR</div>
                 )}
                 <div style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '4px' }}>{plan.name}</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: '800' }}>${plan.price}</div>
@@ -77,7 +71,6 @@ const UpgradeModal = ({ onClose }) => {
               </button>
             ))}
           </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {PREMIUM_PLANS.find(p => p.id === selectedPlan)?.features.map(feature => (
               <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem' }}>
