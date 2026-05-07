@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { PRIVACY_OPTIONS } from '../utils/constants';
+import { PRIVACY_OPTIONS, FOLLOW_APPROVAL_OPTIONS } from '../utils/constants';
 import { HiOutlineMoon, HiOutlineSun, HiOutlineShieldCheck, HiOutlineBell, HiOutlineUser, HiOutlineGlobe, HiOutlineLockClosed, HiOutlineTrash } from 'react-icons/hi';
 
 const SettingsPage = () => {
@@ -11,6 +11,7 @@ const SettingsPage = () => {
   const navigate = useNavigate();
 
   const [privacy, setPrivacy] = useState(userProfile?.privacy || { location: 'city', profile: 'everyone' });
+  const [followApproval, setFollowApproval] = useState(userProfile?.followApproval || 'auto');
 
   const handlePrivacyChange = async (field, value) => {
     const newPrivacy = { ...privacy, [field]: value };
@@ -65,6 +66,16 @@ const SettingsPage = () => {
         </SettingRow>
         <SettingRow label="Blocked Users" description="Manage your blocked users list">
           <span className="badge badge-primary">{userProfile?.blockedUsers?.length || 0} blocked</span>
+        </SettingRow>
+        <SettingRow label="Follow Approval" description="Control how people follow you">
+          <select className="form-input" style={{ width: 'auto', padding: '8px 14px', fontSize: '0.85rem' }}
+            value={followApproval} onChange={async e => {
+              const val = e.target.value;
+              setFollowApproval(val);
+              await updateUserProfile({ followApproval: val });
+            }}>
+            {FOLLOW_APPROVAL_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
         </SettingRow>
       </Section>
 

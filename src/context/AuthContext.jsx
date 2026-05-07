@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI, userAPI } from '../utils/api';
+import { authAPI, userAPI, setToken, removeToken } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -14,9 +14,15 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore session on mount by checking if we have a valid cookie
+  // Restore session on mount by checking if we have a valid token
   useEffect(() => {
     const checkAuth = async () => {
+      const token = localStorage.getItem('vibely_token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const data = await userAPI.getMe();
         if (data.user) {
@@ -24,7 +30,8 @@ export const AuthProvider = ({ children }) => {
           setUserProfile(mapBackendUser(data.user));
         }
       } catch (err) {
-        // Not authenticated, that's fine
+        // Token invalid/expired, clean up
+        removeToken();
         setCurrentUser(null);
         setUserProfile(null);
       }
@@ -54,7 +61,14 @@ export const AuthProvider = ({ children }) => {
     premiumPlan: user.premiumPlan || null,
     premiumExpiry: user.premiumExpiry || null,
     privacy: user.privacy || { location: 'city', profile: 'everyone' },
+    followApproval: user.followApproval || 'auto',
     blockedUsers: user.blockedUsers || [],
+    connectionCount: user.connectionCount || 0,
+    followersCount: user.followersCount || 0,
+    followingCount: user.followingCount || 0,
+    connections: user.connections || [],
+    followers: user.followers || [],
+    following: user.following || [],
     dailyMatchCount: user.dailyMatchCount || 0,
     dailyChatRequests: user.dailyChatRequests || 0,
     lastMatchReset: user.lastMatchReset || new Date().toISOString(),
@@ -81,6 +95,12 @@ export const AuthProvider = ({ children }) => {
     };
 
     const data = await authAPI.register(payload);
+
+    // Store JWT token in localStorage
+    if (data.token) {
+      setToken(data.token);
+    }
+
     const mappedUser = mapBackendUser(data.user);
     setCurrentUser({ uid: data.user._id, email: data.user.email });
     setUserProfile(mappedUser);
@@ -89,6 +109,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const data = await authAPI.login(email, password);
+
+    // Store JWT token in localStorage
+    if (data.token) {
+      setToken(data.token);
+    }
+
     const mappedUser = mapBackendUser(data.user);
     setCurrentUser({ uid: data.user._id, email: data.user.email });
     setUserProfile(mappedUser);
@@ -101,6 +127,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       // Logout even if API fails
     }
+    removeToken();
     setCurrentUser(null);
     setUserProfile(null);
   };

@@ -22,6 +22,7 @@ import SettingsPage from './pages/SettingsPage';
 import PremiumPage from './pages/PremiumPage';
 import MatchesPage from './pages/MatchesPage';
 import AdminDashboard from './pages/AdminDashboard';
+import FriendsPage from './pages/FriendsPage';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
               <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/discover" element={<DiscoverPage />} />
+                <Route path="/friends" element={<FriendsPage />} />
                 <Route path="/matches" element={<MatchesPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/edit-profile" element={<EditProfilePage />} />

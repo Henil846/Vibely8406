@@ -1,17 +1,39 @@
-// In development, Vite proxy handles /api -> localhost:3000
-// In production (GitHub Pages), we need the full backend URL
-const API_BASE = import.meta.env.PROD
-  ? "https://vibely-backend-delta.vercel.app/api"
-  : "/api";
+// Always use the deployed Vercel backend (no need to start backend locally)
+const API_BASE = "https://vibely-backend-delta.vercel.app/api";
+
+// Token management — store JWT in localStorage for cross-origin auth
+function getToken() {
+  return localStorage.getItem("vibely_token");
+}
+
+export function setToken(token) {
+  if (token) {
+    localStorage.setItem("vibely_token", token);
+  }
+}
+
+export function removeToken() {
+  localStorage.removeItem("vibely_token");
+}
 
 async function apiRequest(endpoint, options = {}) {
+  const token = getToken();
+
   const config = {
     headers: {
       "Content-Type": "application/json",
     },
-    credentials: "include", // Send cookies
+    credentials: "include", // Still send cookies as fallback
     ...options,
   };
+
+  // Attach Bearer token if available
+  if (token) {
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${token}`,
+    };
+  }
 
   // Don't set Content-Type for FormData
   if (options.body instanceof FormData) {
@@ -92,6 +114,56 @@ export const userAPI = {
       method: "POST",
       body: JSON.stringify(reportData),
     }),
+};
+
+// Social API
+export const socialAPI = {
+  // Search
+  searchUsers: (username) => apiRequest(`/social/search?username=${encodeURIComponent(username)}`),
+
+  // Friend Requests
+  sendFriendRequest: (userId) =>
+    apiRequest(`/social/friend-request/send/${userId}`, { method: "POST" }),
+
+  acceptFriendRequest: (requestId) =>
+    apiRequest(`/social/friend-request/accept/${requestId}`, { method: "POST" }),
+
+  rejectFriendRequest: (requestId) =>
+    apiRequest(`/social/friend-request/reject/${requestId}`, { method: "POST" }),
+
+  cancelFriendRequest: (requestId) =>
+    apiRequest(`/social/friend-request/cancel/${requestId}`, { method: "POST" }),
+
+  getReceivedFriendRequests: () => apiRequest("/social/friend-requests/received"),
+
+  getSentFriendRequests: () => apiRequest("/social/friend-requests/sent"),
+
+  getFriends: () => apiRequest("/social/friends"),
+
+  unfriend: (userId) =>
+    apiRequest(`/social/unfriend/${userId}`, { method: "POST" }),
+
+  // Follow
+  followUser: (userId) =>
+    apiRequest(`/social/follow/${userId}`, { method: "POST" }),
+
+  unfollowUser: (userId) =>
+    apiRequest(`/social/unfollow/${userId}`, { method: "POST" }),
+
+  acceptFollowRequest: (requestId) =>
+    apiRequest(`/social/follow-request/accept/${requestId}`, { method: "POST" }),
+
+  rejectFollowRequest: (requestId) =>
+    apiRequest(`/social/follow-request/reject/${requestId}`, { method: "POST" }),
+
+  getFollowRequests: () => apiRequest("/social/follow-requests"),
+
+  getFollowers: () => apiRequest("/social/followers"),
+
+  getFollowing: () => apiRequest("/social/following"),
+
+  // Relationship status
+  getRelationshipStatus: (userId) => apiRequest(`/social/status/${userId}`),
 };
 
 export default apiRequest;

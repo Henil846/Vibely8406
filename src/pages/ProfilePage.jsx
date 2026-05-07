@@ -57,6 +57,18 @@ const ProfilePage = () => {
             <div className="profile-info-value" style={{ textTransform: 'capitalize' }}>{userProfile.preferredGender}</div>
             <div className="profile-info-label">Looking for</div>
           </div>
+          <div className="profile-info-item">
+            <div className="profile-info-value" style={{ color: 'var(--primary)', fontWeight: '700' }}>{userProfile.connectionCount || 0}</div>
+            <div className="profile-info-label">Connections</div>
+          </div>
+          <div className="profile-info-item">
+            <div className="profile-info-value" style={{ color: '#e84393', fontWeight: '700' }}>{userProfile.followersCount || 0}</div>
+            <div className="profile-info-label">Followers</div>
+          </div>
+          <div className="profile-info-item">
+            <div className="profile-info-value" style={{ color: '#00b894', fontWeight: '700' }}>{userProfile.followingCount || 0}</div>
+            <div className="profile-info-label">Following</div>
+          </div>
         </div>
 
         {userProfile.interests && userProfile.interests.length > 0 && (

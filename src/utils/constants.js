@@ -106,3 +106,8 @@ export const FREE_LIMITS = {
 };
 
 export const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?background=6C5CE7&color=fff&name=User&size=200';
+
+export const FOLLOW_APPROVAL_OPTIONS = [
+  { id: 'auto', label: 'Auto-approve — anyone can follow instantly' },
+  { id: 'manual', label: 'Manual — follow requests need your approval' },
+];

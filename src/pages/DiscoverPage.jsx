@@ -89,7 +89,9 @@ const DiscoverPage = () => {
     }
   };
 
-  const handleConnect = async (user) => { alert('Connection request sent! 🎉'); };
+  const handleConnect = async (user) => {
+    // Handled internally by UserCard via socialAPI
+  };
 
   return (
     <div className="discover-page animate-fadeIn">

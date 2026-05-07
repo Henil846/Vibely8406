@@ -26,6 +26,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const mainLinks = [
     { to: '/dashboard', icon: <HiOutlineHome />, label: 'Dashboard' },
     { to: '/discover', icon: <HiOutlineSearch />, label: 'Discover' },
+    { to: '/friends', icon: <HiOutlineUserGroup />, label: 'Friends' },
     { to: '/matches', icon: <HiOutlineHeart />, label: 'Matches' },
     { to: '/chats', icon: <HiOutlineChatAlt2 />, label: 'Messages' },
     { to: '/calls', icon: <HiOutlinePhone />, label: 'Calls' },
