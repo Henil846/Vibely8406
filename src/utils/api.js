@@ -1,5 +1,7 @@
-// Always use the deployed Vercel backend (no need to start backend locally)
-const API_BASE = "https://vibely-backend-delta.vercel.app/api";
+// Use local backend in dev mode, Vercel backend in production
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://localhost:3000/api"
+  : "https://vibely-backend-delta.vercel.app/api";
 
 // Token management — store JWT in localStorage for cross-origin auth
 function getToken() {
