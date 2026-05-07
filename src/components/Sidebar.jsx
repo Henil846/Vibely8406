@@ -7,7 +7,7 @@ import MoodSelector from './MoodSelector';
 import {
   HiOutlineHome, HiOutlineSearch, HiOutlineChatAlt2, HiOutlinePhone,
   HiOutlineUser, HiOutlineCog, HiOutlineStar, HiOutlineBell,
-  HiOutlineShieldCheck, HiOutlineHeart
+  HiOutlineShieldCheck, HiOutlineHeart, HiOutlineUserGroup
 } from 'react-icons/hi';
 import './Sidebar.css';
 
